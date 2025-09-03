@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/white.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css">
+		<style>
+		.reveal .slides section {
+			text-align: left;
+			justify-content: center; /* vertical centering */
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+		}
+		  .reveal {
+			font-size: 20px;
+		}
+		.reveal h1 { font-size: 1.5em; }
+		.reveal h2 { font-size: 1em; }
+		</style>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section data-markdown>
+				<textarea data-template>
+## [EPIC] Gestion V2 des points de mesures
+🛠️ Interventions, 🏗️ installations, 📍référencement alti et workflows associés
+
+---
+
+## Contexte
+
+- **Difficultés des chefs de projets 🗂️ pour trouver l'historique des interventions** sur un point de mesure (déploiement, déplacement, SAV d'un boitier) et la **configuration d'installation** (ex: distance antenne-station)
+- **Les références altimétriques 📍 ne peuvent pas être facilement reliées à une configuration d'installation** afin de garantir la qualité du positionnement.
+
+---
+
+# Objectifs 🎯
+
+1. Moderniser la gestion des points de mesure avec **3 nouveaux objets métiers** :
+- **🛠️ Interventions** - Actions terrain tracées
+- **🏗️ Installations** - Caractéristiques physiques de l'installation
+- **📍 Référencements altimétriques** - Positionnement GNSS précis lié à une installation
+
+\+ un **📰 journal d'audit** des modifications.
+
+\
+2. Introduire des Workflows Automatisés:
+1. **🟢 Validation d'installation** - Nouveaux déploiements/remplacements  
+2. **🛠️ Maintenance** - Entretien, déplacements, désinstallations
+
+---
+# Bénéficiaires
+
+- 👷 Coordinateurs techniques
+- 🗂️ Chefs de projets  
+- 🧑‍💼 Clients finaux
+
+**Vision claire et historisée** des opérations terrain + **conformité** des processus internes (workflow + audit) + **liens** entre interventions <-> installations <-> référence altimétrique
+
+---
+
+# 🛠️ Objet Intervention
+
+**Définition** : Action terrain tracée (installation, maintenance, désinstallation)
+
+## Champs principaux
+- **Point de mesure** + **Date intervention** (clés primaires)
+- **Cordiste** (obligatoire)
+- **N° boitier avant/après** intervention
+- **Type installation** : `standard` | `custom` | `installation_retiree`
+- **Distance antenne** (obligatoire si custom)
+- **Boitier déplacé** (oui/non)
+- **Description/rapport** d'intervention
+
+---
+
+# 🛠️ Objet Intervention
+
+## Cas d'usage
+- ✅ **Première installation** → n° boitier avant vide
+- 🔄 **Remplacement** → changement n° boitier avant/après
+- ❌ **Désinstallation** → n° boitier après vide
+- 🛠️ **Maintenance** → même boitier, déplacement possible
+
+---
+
+# 🏗️ Objet Installation
+
+**Définition** : Caractéristiques physiques de l'installation d'un boitier sur son point de mesure
+
+## Champs principaux
+- **Intervention d'installation** (clé primaire)
+- **Intervention de désinstallation** (facultatif)
+- **Date début/fin de validité** (héritées des interventions)
+
+## Contraintes importantes
+- ⚠️ **Intervention liée** doit avoir un n° boitier après intervention
+- 📅 **Pas de chevauchement** de périodes pour un même point de mesure
+- 🔚 Seule l'installation la plus récente peut avoir une date de fin vide
+
+---
+
+# 🏗️ Objet Installation
+
+## Cas d'usage par point de mesure
+- **🚫 Aucune installation** → Point identifié sans boitier
+- **📊 Une installation** → Boitier installé depuis le début d'existence du point de mesure
+- **🔄 Plusieurs installations** → Changements de boitier ou déplacements d'antenne
+
+## Période de validité
+- **Date début** = Date intervention d'installation
+- **Date fin** = Date intervention de désinstallation (si présente)
+- **Installation active** = Date fin vide
+
+---
+
+# 📍 Objet Référence Altimétrique
+
+**Définition** : Hauteur de référence GNSS liée à une installation pour convertir des mesures locales en un référentiel absolu.
+
+## Champs principaux
+- **Installation liée** (obligatoire) — lien vers l'objet `INSTALLATION`
+- **Résultat de positionnement** (obligatoire) — référence vers `RESULTAT_POSITIONNEMENT`
+- **Date début/fin** (héritées de l'installation)
+- **Delta antenne** / correction à appliquer (si nécessaire)
+
+## Contraintes et règles
+- ⚠️ La référence s'applique uniquement pendant la période de validité de l'installation
+- 🔁 Une modification d'installation (déplacement ou remplacement) doit créer une nouvelle référence
+- ✅ Une référence nécessite un résultat de positionnement valide pour être considérée active
+
+## Cas d'usage
+- Création automatique après une intervention d'installation réussie (workflow validation)
+- Mise à jour/création lors d'une maintenance avec déplacement (nouvelle installation)
+- Suppression ou mise en attente si le résultat de positionnement est invalide
+
+---
+
+# Workflows Automatisés
+
+**Workflow: validation d’installation en cas de nouveau point de mesure ou de remplacement de boitier**
+
+*En tant que responsable du déploiement, je dois pouvoir **créer automatiquement les objets intervention, installation et position de référence en cas de validation d’une installation** afin faciliter le suivi du processus d’ouverture de service, le traçage des interventions et le référencement altimétrique précis de la station.*
+
+Ce workflow se déclenche lors de l‘utilisation de l’outil de validation d’installation pour
+
+- la création d’un nouveau point de mesure incluant l’installation d’un nouveau boitier
+- le remplacement d’un boitier sur un point de mesure existant
+
+**Workflow: Maintenance de l’installation**
+
+*En tant que responsable du déploiement, je dois pouvoir **créer automatiquement les objets intervention, installation et position de référence en cas de maintenance d’une installation existante** afin faciliter le traçage des interventions et le référencement altimétrique précis de la station.*
+
+Ce workflow se déclenche depuis la page intervention ou directement du point de mesure avec un bouton “Maintenance”
+
+---
+
+# Workflow: validation d’installation en cas de nouveau point de mesure ou de remplacement de boitier
+
+| **Résultat de validation**                | **Nouveau point de mesure**                                                                                                                                         | **Point de mesure existant**                                                                                                                                                                                                                  |
+|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Intervention d’installation validée**   | - Création d’une intervention avec les champs remplis sur la base des données de la validation<br>- Création d’une nouvelle installation liée<br>- Création d’une requête de positionnement avec comme date de début d’intégration la date d’installation<br>- Création d’une position de référence une fois la requête exécutée | - Création d’une intervention avec les champs remplis sur la base des données de la validation<br>- Mise à jour de l'installation avec intervention de désinstallation<br>- Création d’une nouvelle installation<br>- Création d’une requête de positionnement avec comme date de début d’intégration la date d’installation<br>- Création d’une position de référence une fois la requête exécutée |
+| **Installation invalidée**                | - Création d’une intervention avec boitier vide                                                                                                                     | - Création d’une intervention avec boitier vide et description adéquate<br>- Mise à jour de l'installation existante avec l’intervention de désinstallation si vide                                                                           |
+
+---
+
+# Workflow: Maintenance de l’installation
+
+| Cas                                                                 | Actions                                                                                                                                                                                                                                 |
+|---------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Entretien et nettoyage de l’installation sans aucune modification de la configuration d’intervention | - Création d’une intervention                                                                                                                                                                                                          |
+| Déplacement d’un élément de l’installation (boîtier et/ou antenne)  | - Création d’une intervention<br>- Mise à jour de l'installation avec intervention de désinstallation<br>- Création d’une nouvelle installation<br>- Création d’une requête de positionnement avec comme date de début d’intégration la date d’installation<br>- Création d’une position de référence une fois la requête exécutée |
+| Désinstallation du boîtier                                          | - Création d’une intervention<br>- Mise à jour de l'installation avec intervention de désinstallation                                                                                                                                   |
+
+
+
+
+				</textarea>
+				</section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/reveal.js-mermaid-plugin@11.4.1/plugin/mermaid/mermaid.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealMermaid ]
+			});
+		</script>
+	</body>
+</html>
