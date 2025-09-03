@@ -35,7 +35,7 @@
 # [EPIC] Gestion V2 des points de mesures
 🛠️ Interventions
 
-🏗️ Configuration d'installations
+🏗️ Configuration d'installation
 
 📍 Référencement altimétrique
 
@@ -74,6 +74,20 @@
 - 🧑‍💼 Clients finaux pour la qualité de service
 
 **Vision claire et historisée** des opérations terrain + **conformité** des processus internes (workflow + audit) + **liens** entre interventions <-> installations <-> référence altimétrique
+
+---
+
+# Les nouveaux objets métiers
+
+🛠️ Intervention : Action terrain datée sur un point de mesure (installation, maintenance, désinstallation)
+
+🏗️ Installation : Caractéristiques physiques de l'installation d'un boitier sur son point de mesure délimitée dans le temps par 1 ou 2 🛠️ interventions.
+
+📍 Référence Altimétrique : Hauteur de référence GNSS liée à une 🏗️ installation pour convertir des mesures locales en un référentiel absolu.
+
+🛠️ Intervention 1..2 <-> 1..2 🏗️ Installation
+
+🏗️ Installation 0..1 <-> 1..1 📍 Référence Altimétrique
 
 ---
 
@@ -190,7 +204,22 @@ Ce workflow se déclenche depuis la page intervention ou directement du point de
 | Désinstallation du boîtier                                          | - Création d’une intervention<br>- Mise à jour de l'installation avec intervention de désinstallation                                                                                                                                   |
 
 
+---
 
+# Les défis
+
+- Bien alimenter la base interventions (*shit in shit out*)
+- Implications dans l'app et les chaînes de traitement à anticiper
+- Migration de l'ancien vers le nouveau modèle de données (cohabitation temporaire ?)
+
+---
+
+# La suite ?
+
+- **Récupération des rapports d'intervention** du cordiste
+- **Planification des interventions**: gestion des demandes d'intervention pour installation, maintenance, désinstallation
+- **Assignation des interventions**: attribution des demandes aux cordistes disponibles et envoi d'un plan de déploiement
+- **Gestion du stock cordiste** en lien avec les assignations et les boitiers
 
 				</textarea>
 				</section>
@@ -208,9 +237,10 @@ Ce workflow se déclenche depuis la page intervention ou directement du point de
 			// - https://revealjs.com/config/
 			Reveal.initialize({
 				hash: true,
+				slideNumber: true ,
 
 				// Learn about plugins: https://revealjs.com/plugins/
-				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealMermaid ]
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealMermaid ],
 			});
 		</script>
 	</body>
