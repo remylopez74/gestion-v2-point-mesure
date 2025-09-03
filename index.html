@@ -23,8 +23,8 @@
 		  .reveal {
 			font-size: 20px;
 		}
-		.reveal h1 { font-size: 1.5em; }
-		.reveal h2 { font-size: 1em; }
+		.reveal h1 { font-size: 2em; }
+		.reveal h2 { font-size: 1.5em; }
 		</style>
 	</head>
 	<body>
@@ -32,38 +32,46 @@
 			<div class="slides">
 				<section data-markdown>
 				<textarea data-template>
-## [EPIC] Gestion V2 des points de mesures
-🛠️ Interventions, 🏗️ installations, 📍référencement alti et workflows associés
+# [EPIC] Gestion V2 des points de mesures
+🛠️ Interventions
+
+🏗️ Configuration d'installations
+
+📍 Référencement altimétrique
+
+... et workflows associés
 
 ---
 
-## Contexte
+# Contexte
 
 - **Difficultés des chefs de projets 🗂️ pour trouver l'historique des interventions** sur un point de mesure (déploiement, déplacement, SAV d'un boitier) et la **configuration d'installation** (ex: distance antenne-station)
-- **Les références altimétriques 📍 ne peuvent pas être facilement reliées à une configuration d'installation** afin de garantir la qualité du positionnement.
+- **Les références altimétriques 📍 ne peuvent pas être facilement reliées à une configuration d'installation et à une intervention** afin de garantir la qualité du positionnement.
+- **Les biais systèmes ⬇️ peuvent entraîner des erreurs de référencement** s'ils ne sont pas mis à jour en cas de nouveau référencement de la station.
 
 ---
 
 # Objectifs 🎯
 
-1. Moderniser la gestion des points de mesure avec **3 nouveaux objets métiers** :
-- **🛠️ Interventions** - Actions terrain tracées
-- **🏗️ Installations** - Caractéristiques physiques de l'installation
-- **📍 Référencements altimétriques** - Positionnement GNSS précis lié à une installation
+1. Moderniser la gestion des points de mesure avec **3 nouveaux objets métiers** (et 1 en moins) dans le centre de contrôle :
+- **🛠️ Intervention** - Action terrain tracée
+- **🏗️ Installation** - Caractéristiques physiques de l'installation valides entre deux interventions
+- **📍 Référencement altimétrique** - Positionnement GNSS précis lié à une installation
+- **~~⬇️ Biais systèmes~~** - Déprécié
 
-\+ un **📰 journal d'audit** des modifications.
+\+ un **📰 journal d'audit** des modifications sur tous ces objets.
 
 \
-2. Introduire des Workflows Automatisés:
+2. Introduire ou mettre à jour des **workflows automatisés**:
 1. **🟢 Validation d'installation** - Nouveaux déploiements/remplacements  
 2. **🛠️ Maintenance** - Entretien, déplacements, désinstallations
 
 ---
 # Bénéficiaires
 
-- 👷 Coordinateurs techniques
-- 🗂️ Chefs de projets  
-- 🧑‍💼 Clients finaux
+- 👷 Les déploiements pour la traçabilité
+- 🗂️ Coordinateurs techniques & Chefs de projets pour le reporting client
+- 🧑‍💼 Clients finaux pour la qualité de service
 
 **Vision claire et historisée** des opérations terrain + **conformité** des processus internes (workflow + audit) + **liens** entre interventions <-> installations <-> référence altimétrique
 
@@ -77,9 +85,9 @@
 - **Point de mesure** + **Date intervention** (clés primaires)
 - **Cordiste** (obligatoire)
 - **N° boitier avant/après** intervention
-- **Type installation** : `standard` | `custom` | `installation_retiree`
-- **Distance antenne** (obligatoire si custom)
 - **Boitier déplacé** (oui/non)
+- **Type installation** : `standard` | `custom` | `installation_retiree` | `installation_identique`
+- **Distance antenne** (obligatoire si custom)
 - **Description/rapport** d'intervention
 
 ---
@@ -104,7 +112,8 @@
 - **Date début/fin de validité** (héritées des interventions)
 
 ## Contraintes importantes
-- ⚠️ **Intervention liée** doit avoir un n° boitier après intervention
+- ⚠️ **Intervention d'installation liée** doit avoir un n° boitier après intervention
+- ⚠️ **Intervention de désinstallation liée** doit avoir un n° boitier avant intervention et vide après
 - 📅 **Pas de chevauchement** de périodes pour un même point de mesure
 - 🔚 Seule l'installation la plus récente peut avoir une date de fin vide
 
@@ -129,43 +138,41 @@
 **Définition** : Hauteur de référence GNSS liée à une installation pour convertir des mesures locales en un référentiel absolu.
 
 ## Champs principaux
-- **Installation liée** (obligatoire) — lien vers l'objet `INSTALLATION`
-- **Résultat de positionnement** (obligatoire) — référence vers `RESULTAT_POSITIONNEMENT`
-- **Date début/fin** (héritées de l'installation)
-- **Delta antenne** / correction à appliquer (si nécessaire)
+- **Installation liée** (obligatoire) — lien vers l'objet Installation
+- **Résultat de positionnement** (obligatoire) — référence vers le résultat GNSS
+- **Delta antenne** / correction à appliquer (si nécessaire), un espèce de biais système au cas où ;)
 
 ## Contraintes et règles
 - ⚠️ La référence s'applique uniquement pendant la période de validité de l'installation
 - 🔁 Une modification d'installation (déplacement ou remplacement) doit créer une nouvelle référence
 - ✅ Une référence nécessite un résultat de positionnement valide pour être considérée active
 
+---
+
+# 📍 Objet Référence Altimétrique
+
 ## Cas d'usage
-- Création automatique après une intervention d'installation réussie (workflow validation)
-- Mise à jour/création lors d'une maintenance avec déplacement (nouvelle installation)
-- Suppression ou mise en attente si le résultat de positionnement est invalide
+- Création automatique après une intervention d'installation réussie
+- Mise à jour/création lors d'une maintenance avec déplacement
 
 ---
 
 # Workflows Automatisés
 
-**Workflow: validation d’installation en cas de nouveau point de mesure ou de remplacement de boitier**
-
-*En tant que responsable du déploiement, je dois pouvoir **créer automatiquement les objets intervention, installation et position de référence en cas de validation d’une installation** afin faciliter le suivi du processus d’ouverture de service, le traçage des interventions et le référencement altimétrique précis de la station.*
+**Validation d’installation en cas de nouveau point de mesure ou de remplacement de boitier**
 
 Ce workflow se déclenche lors de l‘utilisation de l’outil de validation d’installation pour
 
 - la création d’un nouveau point de mesure incluant l’installation d’un nouveau boitier
 - le remplacement d’un boitier sur un point de mesure existant
 
-**Workflow: Maintenance de l’installation**
-
-*En tant que responsable du déploiement, je dois pouvoir **créer automatiquement les objets intervention, installation et position de référence en cas de maintenance d’une installation existante** afin faciliter le traçage des interventions et le référencement altimétrique précis de la station.*
+**Maintenance de l’installation**
 
 Ce workflow se déclenche depuis la page intervention ou directement du point de mesure avec un bouton “Maintenance”
 
 ---
 
-# Workflow: validation d’installation en cas de nouveau point de mesure ou de remplacement de boitier
+# Workflow: validation d’installation
 
 | **Résultat de validation**                | **Nouveau point de mesure**                                                                                                                                         | **Point de mesure existant**                                                                                                                                                                                                                  |
 |-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
